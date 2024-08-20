@@ -11,10 +11,13 @@ mod reader;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let bind = env::args()
+    let url_bind = env::args()
         .nth(1)
         .unwrap_or_else(|| "https://blog.rust-lang.org/feed.xml".to_string());
-    let url = bind.as_str();
+    let url = url_bind.as_str();
+
+    let index_bind = env::args().nth(2).unwrap_or_else(|| "0".to_string());
+    let index = index_bind.parse::<usize>()?;
 
     let skin = MadSkin::default_dark();
     let (x, _) = termion::terminal_size().unwrap();
@@ -23,7 +26,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let data = reader::read_entries(resp.as_str())?;
 
-    let first = data.first();
+    let first = data.get(index);
 
     match first {
         None => {
