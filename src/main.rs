@@ -1,27 +1,40 @@
-use std::{error::Error, io::Cursor};
+use std::{env, error::Error, io::Cursor};
 
 use fead::FormatText;
 use fetch::get_content;
 use html2text::from_read;
 use htmlentity::entity::{decode, ICodedDataTrait};
-use termimad::{minimad::TextTemplate, MadSkin};
+use termimad::{minimad::TextTemplate, print_inline, MadSkin};
 
 mod fetch;
 mod reader;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let bind = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "https://blog.rust-lang.org/feed.xml".to_string());
+    let url = bind.as_str();
+
     let skin = MadSkin::default_dark();
     let (x, _) = termion::terminal_size().unwrap();
 
-    let resp = get_content("https://blog.rust-lang.org/feed.xml").await?;
+    let resp = get_content(url).await?;
 
     let data = reader::read_entries(resp.as_str())?;
 
-    let first = data.first().unwrap();
+    let first = data.first();
 
-    let raw_title = &first.title.as_bytes().to_vec();
-    let raw_content = &first.content.as_bytes().to_vec();
+    match first {
+        None => {
+            print_inline("No entries found.\n");
+            return Ok(());
+        }
+        Some(_) => (),
+    }
+
+    let raw_title = &first.unwrap().title.as_bytes().to_vec();
+    let raw_content = &first.unwrap().content.as_bytes().to_vec();
 
     let decoded_title = decode(raw_title);
     let decoded_content = decode(raw_content);
