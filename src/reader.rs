@@ -23,8 +23,8 @@ pub fn read_entries(xml: &str) -> Result<Vec<Entry>, Box<dyn Error>> {
         match reader.read_event_into(&mut buf) {
             Err(e) => return Err(e.into()),
             Ok(Event::Eof) => break,
-            Ok(Event::Start(e)) => {
-                if let QName(b"entry") = e.name() {
+            Ok(Event::Start(e)) => match e.name() {
+                QName(b"entry") => {
                     let mut entry = Entry {
                         title: String::new(),
                         content: String::new(),
@@ -53,7 +53,50 @@ pub fn read_entries(xml: &str) -> Result<Vec<Entry>, Box<dyn Error>> {
                         }
                     }
                 }
-            }
+                QName(b"channel") => loop {
+                    match reader.read_event_into(&mut buf)? {
+                        Event::Start(element) => {
+                            if let QName(b"item") = element.name() {
+                                let mut entry = Entry {
+                                    title: String::new(),
+                                    content: String::new(),
+                                };
+
+                                loop {
+                                    match reader.read_event_into(&mut buf)? {
+                                        Event::Start(element) => match element.name() {
+                                            QName(b"title") => {
+                                                let title = reader.read_text(QName(b"title"))?;
+                                                entry.title.push_str(&title);
+                                            }
+                                            QName(b"description") => {
+                                                let content =
+                                                    reader.read_text(QName(b"description"))?;
+                                                entry.content.push_str(&content);
+                                            }
+                                            _ => (),
+                                        },
+                                        Event::End(element) => {
+                                            if element.name().as_ref() == b"item" {
+                                                entries.push(entry);
+                                                break;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                        Event::End(element) => {
+                            if element.name().as_ref() == b"channel" {
+                                break;
+                            }
+                        }
+                        _ => {}
+                    }
+                },
+                _ => (),
+            },
             _ => (),
         }
     }
