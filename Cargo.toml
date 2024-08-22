@@ -4,12 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+crossterm = { version = "0.28.1", features = ["event-stream"] }
+futures = "0.3.30"
 html2text = "0.12.5"
 htmlentity = "1.3.2"
 quick-xml = "0.36"
+ratatui = "0.28.0"
 reqwest = "0.12"
 serde = { version = "1.0.208", features = ["derive"] }
 serde-xml-rs = "0.6.0"
 termimad = "0.30.0"
 termion = "4.0.2"
 tokio = { version = "1", features = ["full"] }
+tui-input = "0.10.0"
