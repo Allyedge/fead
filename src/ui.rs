@@ -1,8 +1,8 @@
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, HighlightSpacing, List, ListItem, Paragraph},
     Frame,
 };
 
@@ -23,6 +23,28 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         )
         .split(frame.area());
 
+    render_header(app, frame, chunks[0]);
+    render_help_message(app, frame, chunks[0]);
+    render_input_field(app, frame, chunks[1]);
+    render_feed_list(app, frame, chunks[2]);
+}
+
+fn render_header(_: &App, frame: &mut Frame, _: ratatui::layout::Rect) {
+    frame.render_widget(
+        Paragraph::new("Choose a feed or enter a new one to get started.")
+            .block(
+                Block::bordered()
+                    .title("Fead")
+                    .title_alignment(Alignment::Center)
+                    .border_type(BorderType::Rounded),
+            )
+            .style(Style::default().fg(Color::Cyan).bg(Color::Black))
+            .centered(),
+        frame.area(),
+    )
+}
+
+fn render_help_message(app: &App, frame: &mut Frame, area: ratatui::layout::Rect) {
     let (data, style) = match app.input_mode {
         InputMode::Normal => (
             vec![
@@ -46,26 +68,14 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         ),
     };
 
-    frame.render_widget(
-        Paragraph::new("Choose a feed or enter a new one to get started.")
-            .block(
-                Block::bordered()
-                    .title("Fead")
-                    .title_alignment(Alignment::Center)
-                    .border_type(BorderType::Rounded),
-            )
-            .style(Style::default().fg(Color::Cyan).bg(Color::Black))
-            .centered(),
-        frame.area(),
-    );
-
     let text = Text::from(Line::from(data)).style(style);
     let help_message = Paragraph::new(text);
 
-    frame.render_widget(help_message, chunks[0]);
+    frame.render_widget(help_message, area);
+}
 
-    let width = chunks[0].width.max(3) - 3;
-
+fn render_input_field(app: &App, frame: &mut Frame, area: ratatui::layout::Rect) {
+    let width = area.width.max(3) - 3;
     let scroll = app.input.visual_scroll(width as usize);
 
     let input = Paragraph::new(app.input.value())
@@ -75,14 +85,36 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         })
         .scroll((0, scroll as u16))
         .block(Block::default().borders(Borders::ALL).title("Input"));
-    frame.render_widget(input, chunks[1]);
 
-    match app.input_mode {
-        InputMode::Normal => {}
+    frame.render_widget(input, area);
 
-        InputMode::Editing => frame.set_cursor_position((
-            chunks[1].x + ((app.input.visual_cursor()).max(scroll) - scroll) as u16 + 1,
-            chunks[1].y + 1,
-        )),
+    if let InputMode::Editing = app.input_mode {
+        frame.set_cursor_position((
+            area.x + ((app.input.visual_cursor()).max(scroll) - scroll) as u16 + 1,
+            area.y + 1,
+        ));
     }
+}
+
+fn render_feed_list(app: &mut App, frame: &mut Frame, area: ratatui::layout::Rect) {
+    let items: Vec<ListItem> = app
+        .feed_list
+        .items
+        .iter()
+        .enumerate()
+        .map(|(_, feed)| ListItem::from(feed.title.clone()).fg(Color::Cyan))
+        .collect();
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Feeds")
+                .title_alignment(Alignment::Center),
+        )
+        .highlight_style(Style::new().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        .highlight_symbol("> ")
+        .highlight_spacing(HighlightSpacing::Always);
+
+    frame.render_stateful_widget(list, area, &mut app.feed_list.state);
 }

@@ -1,4 +1,7 @@
-use crate::app::{App, AppResult, InputMode};
+use crate::{
+    app::{App, AppResult, InputMode},
+    feeds::FeedManager,
+};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use tui_input::backend::crossterm::EventHandler;
 
@@ -13,13 +16,15 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
     match app.input_mode {
         InputMode::Normal => match key_event.code {
-            KeyCode::Esc => match app.input_mode {
-                InputMode::Normal => app.input_mode = InputMode::Editing,
-                InputMode::Editing => {}
-            },
+            KeyCode::Esc => app.input_mode = InputMode::Editing,
+            KeyCode::Left => app.feed_list.state.select(None),
+            KeyCode::Down => app.feed_list.state.select_next(),
+            KeyCode::Up => app.feed_list.state.select_previous(),
+            KeyCode::Home => app.feed_list.state.select_first(),
+            KeyCode::End => app.feed_list.state.select_last(),
             KeyCode::Enter => match app.input_mode {
                 InputMode::Normal => {
-                    // enter the selected feed
+                    // enter
                 }
                 InputMode::Editing => {}
             },
@@ -28,7 +33,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         InputMode::Editing => {
             match key_event.code {
                 KeyCode::Enter => {
-                    // submit the feed url TODO
+                    app.feed_list
+                        .items
+                        .add_feed(app.input.value().to_string(), app.input.value().to_string());
+                    app.feed_list.items.persist()?;
                     app.input.reset();
                     app.input_mode = InputMode::Normal;
                 }

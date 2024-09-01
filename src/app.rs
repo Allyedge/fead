@@ -1,5 +1,7 @@
 use std::error;
 
+use crate::feeds::{load, Feed};
+use ratatui::widgets::ListState;
 use tui_input::Input;
 
 /// Application result type.
@@ -11,6 +13,11 @@ pub enum InputMode {
     Editing,
 }
 
+#[derive(Debug)]
+pub struct FeedList {
+    pub items: Vec<Feed>,
+    pub state: ListState,
+}
 /// Application.
 #[derive(Debug)]
 pub struct App {
@@ -18,7 +25,7 @@ pub struct App {
     pub running: bool,
     pub input: Input,
     pub input_mode: InputMode,
-    pub feeds: Vec<String>,
+    pub feed_list: FeedList,
 }
 
 impl Default for App {
@@ -27,7 +34,10 @@ impl Default for App {
             running: true,
             input: Input::default(),
             input_mode: InputMode::Normal,
-            feeds: vec![],
+            feed_list: FeedList {
+                items: load().unwrap(),
+                state: ListState::default(),
+            },
         }
     }
 }
