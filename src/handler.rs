@@ -1,6 +1,7 @@
 use crate::{
     app::{App, AppResult, InputMode},
     feeds::FeedManager,
+    reader::read_title,
 };
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use tui_input::backend::crossterm::EventHandler;
@@ -33,9 +34,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         InputMode::Editing => {
             match key_event.code {
                 KeyCode::Enter => {
-                    app.feed_list
-                        .items
-                        .add_feed(app.input.value().to_string(), app.input.value().to_string());
+                    // WARNING
+                    // DOES NOT WORK YET
+                    app.feed_list.items.add_feed(
+                        read_title(app.input.value())?,
+                        app.input.value().to_string(),
+                    );
                     app.feed_list.items.persist()?;
                     app.input.reset();
                     app.input_mode = InputMode::Normal;

@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Write, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -34,7 +34,18 @@ impl FeedManager for Vec<Feed> {
 }
 
 pub fn load() -> AppResult<Vec<Feed>> {
-    let file = File::open("feeds.json")?;
-    let feeds: Vec<Feed> = serde_json::from_reader(file)?;
-    Ok(feeds)
+    let exists = Path::exists(Path::new("feeds.json"));
+
+    match exists {
+        true => {
+            let file = File::open(Path::new("feeds.json"))?;
+            let feeds: Vec<Feed> = serde_json::from_reader(file)?;
+            Ok(feeds)
+        }
+        false => {
+            let _ = File::create(Path::new("feeds.json"))?;
+            let feeds: Vec<Feed> = vec![];
+            Ok(feeds)
+        }
+    }
 }

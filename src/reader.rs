@@ -9,6 +9,26 @@ pub struct Entry {
     pub content: String,
 }
 
+fn read_generator(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<String, Box<dyn Error>> {
+    loop {
+        match reader.read_event_into(buf)? {
+            Event::Start(element) => {
+                if element.name().as_ref() == b"generator" {
+                    return Ok(reader.read_text(QName(b"generator"))?.to_string());
+                }
+            }
+            Event::End(element) => {
+                if element.name().as_ref() == b"generator" {
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(String::new())
+}
+
 fn read_entry(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box<dyn Error>> {
     let mut entry = Entry {
         title: String::new(),
@@ -36,6 +56,29 @@ fn read_entry(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Bo
             _ => {}
         }
     }
+}
+
+fn read_channel_title(
+    reader: &mut Reader<&[u8]>,
+    buf: &mut Vec<u8>,
+) -> Result<String, Box<dyn Error>> {
+    loop {
+        match reader.read_event_into(buf)? {
+            Event::Start(element) => {
+                if element.name().as_ref() == b"title" {
+                    return Ok(reader.read_text(QName(b"title"))?.to_string());
+                }
+            }
+            Event::End(element) => {
+                if element.name().as_ref() == b"title" {
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(String::new())
 }
 
 fn read_channel(
@@ -122,4 +165,32 @@ pub fn read_entries(xml: &str) -> Result<Vec<Entry>, Box<dyn Error>> {
     buf.clear();
 
     Ok(entries)
+}
+
+pub fn read_title(xml: &str) -> Result<String, Box<dyn Error>> {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(true);
+
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Err(e) => return Err(e.into()),
+            Ok(Event::Eof) => break,
+            Ok(Event::Start(e)) => {
+                if e.name().as_ref() == b"channel" {
+                    return read_channel_title(&mut reader, &mut buf);
+                }
+
+                if e.name().as_ref() == b"feed" {
+                    return read_generator(&mut reader, &mut buf);
+                }
+            }
+            _ => (),
+        }
+    }
+
+    buf.clear();
+
+    Ok(String::new())
 }
