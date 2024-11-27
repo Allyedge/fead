@@ -1,6 +1,10 @@
 use std::error;
 
-use crate::feeds::{load, Feed};
+use crate::{
+    entries::Entry,
+    feeds::{load_feeds, Feed},
+    screen::Screen,
+};
 use ratatui::widgets::ListState;
 use tui_input::Input;
 
@@ -18,26 +22,42 @@ pub struct FeedList {
     pub items: Vec<Feed>,
     pub state: ListState,
 }
+
+#[derive(Debug)]
+pub struct EntryList {
+    pub items: Vec<Entry>,
+    pub state: ListState,
+}
+
 /// Application.
 #[derive(Debug)]
 pub struct App {
     /// Is the application running?
     pub running: bool,
+    pub screen: Screen,
     pub input: Input,
     pub input_mode: InputMode,
     pub feed_list: FeedList,
+    pub entry_list: EntryList,
+    pub current_data: String,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
+            screen: Screen::Home,
             input: Input::default(),
             input_mode: InputMode::Normal,
             feed_list: FeedList {
-                items: load().unwrap(),
+                items: load_feeds().unwrap(),
                 state: ListState::default(),
             },
+            entry_list: EntryList {
+                items: vec![],
+                state: ListState::default(),
+            },
+            current_data: "".to_string(),
         }
     }
 }

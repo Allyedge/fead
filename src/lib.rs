@@ -13,9 +13,11 @@ pub mod tui;
 /// Event handler.
 pub mod handler;
 
+pub mod entries;
 pub mod feeds;
 pub mod fetch;
 pub mod reader;
+pub mod screen;
 
 pub trait FormatText {
     fn strip_trailing_newline(&self) -> Self;

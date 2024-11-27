@@ -6,32 +6,63 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, InputMode};
+use crate::{
+    app::{App, InputMode},
+    screen::Screen,
+};
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(3)
-        .constraints(
-            [
-                Constraint::Length(1),
-                Constraint::Length(3),
-                Constraint::Min(1),
-            ]
-            .as_ref(),
-        )
-        .split(frame.area());
+    match app.screen {
+        Screen::Home => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(3)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(frame.area());
 
-    render_header(app, frame, chunks[0]);
-    render_help_message(app, frame, chunks[0]);
-    render_input_field(app, frame, chunks[1]);
-    render_feed_list(app, frame, chunks[2]);
+            render_header(
+                app,
+                frame,
+                chunks[0],
+                "Choose a feed or enter a new one to get started.",
+            );
+            render_help_message(app, frame, chunks[0]);
+            render_input_field(app, frame, chunks[1]);
+            render_feed_list(app, frame, chunks[2]);
+        }
+        Screen::Feed => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(3)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(0),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(frame.area());
+
+            // Replace with feed content
+            render_header(app, frame, chunks[0], "Choose an article to read.");
+            render_article_list(app, frame, chunks[2]);
+        }
+        Screen::Article => {}
+    }
 }
 
-fn render_header(_: &App, frame: &mut Frame, _: ratatui::layout::Rect) {
+fn render_header(_: &App, frame: &mut Frame, _: ratatui::layout::Rect, text: &str) {
     frame.render_widget(
-        Paragraph::new("Choose a feed or enter a new one to get started.")
+        Paragraph::new(text)
             .block(
                 Block::bordered()
                     .title("Fead")
@@ -110,6 +141,29 @@ fn render_feed_list(app: &mut App, frame: &mut Frame, area: ratatui::layout::Rec
             Block::default()
                 .borders(Borders::ALL)
                 .title("Feeds")
+                .title_alignment(Alignment::Center),
+        )
+        .highlight_style(Style::new().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        .highlight_symbol("> ")
+        .highlight_spacing(HighlightSpacing::Always);
+
+    frame.render_stateful_widget(list, area, &mut app.feed_list.state);
+}
+
+fn render_article_list(app: &mut App, frame: &mut Frame, area: ratatui::layout::Rect) {
+    let items: Vec<ListItem> = app
+        .entry_list
+        .items
+        .iter()
+        .enumerate()
+        .map(|(_, entry)| ListItem::from(entry.title.clone()).fg(Color::Cyan))
+        .collect();
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Articles")
                 .title_alignment(Alignment::Center),
         )
         .highlight_style(Style::new().fg(Color::Yellow).add_modifier(Modifier::BOLD))

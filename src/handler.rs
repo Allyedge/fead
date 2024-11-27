@@ -1,8 +1,10 @@
 use crate::{
     app::{App, AppResult, InputMode},
-    feeds::FeedManager,
+    entries::load_entries,
+    feeds::FeedsManager,
     fetch::fetch_content,
     reader::read_title,
+    screen::Screen,
 };
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use tui_input::backend::crossterm::EventHandler;
@@ -18,7 +20,11 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
 
     match app.input_mode {
         InputMode::Normal => match key_event.code {
-            KeyCode::Esc => app.input_mode = InputMode::Editing,
+            KeyCode::Esc => match app.screen {
+                Screen::Home => app.input_mode = InputMode::Editing,
+                Screen::Feed => app.screen = Screen::Home,
+                Screen::Article => {}
+            },
             KeyCode::Left => app.feed_list.state.select(None),
             KeyCode::Down => app.feed_list.state.select_next(),
             KeyCode::Up => app.feed_list.state.select_previous(),
@@ -26,7 +32,12 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             KeyCode::End => app.feed_list.state.select_last(),
             KeyCode::Enter => match app.input_mode {
                 InputMode::Normal => {
-                    // enter
+                    let selected = app.feed_list.state.selected().unwrap();
+                    let data =
+                        fetch_content(&app.feed_list.items.get(selected).unwrap().url).await?;
+                    app.current_data = data;
+                    app.entry_list.items = load_entries(&app.current_data)?;
+                    app.screen = Screen::Feed;
                 }
                 InputMode::Editing => {}
             },

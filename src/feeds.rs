@@ -14,13 +14,13 @@ pub struct Feed {
     pub url: String,
 }
 
-pub trait FeedManager {
+pub trait FeedsManager {
     fn persist(&self) -> AppResult<()>;
     fn add_feed(&mut self, title: String, url: String);
     fn remove_feed(&mut self, title: &str);
 }
 
-impl FeedManager for Vec<Feed> {
+impl FeedsManager for Vec<Feed> {
     fn persist(&self) -> AppResult<()> {
         let mut file = File::create("feeds.json")?;
         let feeds_json = serde_json::to_string(self)?;
@@ -37,7 +37,7 @@ impl FeedManager for Vec<Feed> {
     }
 }
 
-pub fn load() -> AppResult<Vec<Feed>> {
+pub fn load_feeds() -> AppResult<Vec<Feed>> {
     let path = Path::new("feeds.json");
     let exists = Path::exists(path);
 

@@ -3,11 +3,7 @@ use quick_xml::name::QName;
 use quick_xml::Reader;
 use std::error::Error;
 
-#[derive(Debug)]
-pub struct Entry {
-    pub title: String,
-    pub content: String,
-}
+use crate::entries::Entry;
 
 fn read_generator(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<String, Box<dyn Error>> {
     loop {
@@ -32,6 +28,7 @@ fn read_generator(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Strin
 fn read_entry(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box<dyn Error>> {
     let mut entry = Entry {
         title: String::new(),
+        description: String::new(),
         content: String::new(),
     };
 
@@ -41,6 +38,10 @@ fn read_entry(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Bo
                 QName(b"title") => {
                     let title = reader.read_text(QName(b"title"))?;
                     entry.title.push_str(&title);
+                }
+                QName(b"description") => {
+                    let description = reader.read_text(QName(b"description"))?;
+                    entry.description.push_str(&description);
                 }
                 QName(b"content") => {
                     let content = reader.read_text(QName(b"content"))?;
@@ -110,6 +111,7 @@ fn read_channel(
 fn read_item(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box<dyn Error>> {
     let mut entry = Entry {
         title: String::new(),
+        description: String::new(),
         content: String::new(),
     };
 
@@ -121,7 +123,11 @@ fn read_item(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box
                     entry.title.push_str(&title);
                 }
                 QName(b"description") => {
-                    let content = reader.read_text(QName(b"description"))?;
+                    let description = reader.read_text(QName(b"description"))?;
+                    entry.description.push_str(&description);
+                }
+                QName(b"content") => {
+                    let content = reader.read_text(QName(b"content"))?;
                     entry.content.push_str(&content);
                 }
                 _ => (),
