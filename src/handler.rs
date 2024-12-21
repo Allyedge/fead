@@ -23,22 +23,54 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             KeyCode::Esc => match app.screen {
                 Screen::Home => app.input_mode = InputMode::Editing,
                 Screen::Feed => app.screen = Screen::Home,
+                Screen::Article => app.screen = Screen::Feed,
+            },
+            KeyCode::Left => match app.screen {
+                Screen::Home => {}
+                Screen::Feed => app.screen = Screen::Home,
+                Screen::Article => app.screen = Screen::Feed,
+            },
+            KeyCode::Down => match app.screen {
+                Screen::Home => app.feed_list.state.select_next(),
+                Screen::Feed => app.entry_list.state.select_next(),
                 Screen::Article => {}
             },
-            KeyCode::Left => app.feed_list.state.select(None),
-            KeyCode::Down => app.feed_list.state.select_next(),
-            KeyCode::Up => app.feed_list.state.select_previous(),
-            KeyCode::Home => app.feed_list.state.select_first(),
-            KeyCode::End => app.feed_list.state.select_last(),
+            KeyCode::Up => match app.screen {
+                Screen::Home => app.feed_list.state.select_previous(),
+                Screen::Feed => app.entry_list.state.select_previous(),
+                Screen::Article => {}
+            },
+            KeyCode::Home => match app.screen {
+                Screen::Home => app.feed_list.state.select_first(),
+                Screen::Feed => app.entry_list.state.select_first(),
+                Screen::Article => {}
+            },
+            KeyCode::End => match app.screen {
+                Screen::Home => app.feed_list.state.select_last(),
+                Screen::Feed => app.entry_list.state.select_last(),
+                Screen::Article => {}
+            },
             KeyCode::Enter => match app.input_mode {
-                InputMode::Normal => {
-                    let selected = app.feed_list.state.selected().unwrap();
-                    let data =
-                        fetch_content(&app.feed_list.items.get(selected).unwrap().url).await?;
-                    app.current_data = data;
-                    app.entry_list.items = load_entries(&app.current_data)?;
-                    app.screen = Screen::Feed;
-                }
+                InputMode::Normal => match app.screen {
+                    Screen::Home => {
+                        if let Some(selected) = app.feed_list.state.selected() {
+                            let data =
+                                fetch_content(&app.feed_list.items.get(selected).unwrap().url)
+                                    .await?;
+                            app.entry_list.items = load_entries(data.as_str())?;
+                            app.entry_list.state.select_first();
+                            app.screen = Screen::Feed;
+                        }
+                    }
+                    Screen::Feed => {
+                        if let Some(selected) = app.entry_list.state.selected() {
+                            let entry = app.entry_list.items.get(selected).unwrap().clone();
+                            app.current_entry = entry;
+                            app.screen = Screen::Article;
+                        }
+                    }
+                    Screen::Article => {}
+                },
                 InputMode::Editing => {}
             },
             _ => {}

@@ -47,6 +47,10 @@ fn read_entry(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Bo
                     let content = reader.read_text(QName(b"content"))?;
                     entry.content.push_str(&content);
                 }
+                QName(b"content:encoded") => {
+                    let content = reader.read_text(QName(b"content:encoded"))?;
+                    entry.content.push_str(&content);
+                }
                 _ => (),
             },
             Event::End(element) => {
@@ -128,6 +132,10 @@ fn read_item(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box
                 }
                 QName(b"content") => {
                     let content = reader.read_text(QName(b"content"))?;
+                    entry.content.push_str(&content);
+                }
+                QName(b"content:encoded") => {
+                    let content = reader.read_text(QName(b"content:encoded"))?;
                     entry.content.push_str(&content);
                 }
                 _ => (),

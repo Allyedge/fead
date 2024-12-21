@@ -39,7 +39,7 @@ pub struct App {
     pub input_mode: InputMode,
     pub feed_list: FeedList,
     pub entry_list: EntryList,
-    pub current_data: String,
+    pub current_entry: Entry,
 }
 
 impl Default for App {
@@ -57,7 +57,11 @@ impl Default for App {
                 items: vec![],
                 state: ListState::default(),
             },
-            current_data: "".to_string(),
+            current_entry: Entry {
+                title: String::new(),
+                description: String::new(),
+                content: String::new(),
+            },
         }
     }
 }
