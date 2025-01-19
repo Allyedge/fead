@@ -98,12 +98,14 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             KeyCode::Home => match app.screen {
                 Screen::Home => app.feed_list.state.select_first(),
                 Screen::Feed => app.entry_list.state.select_first(),
-                Screen::Article => {}
+                Screen::Article => app.scroll_offset = 0,
             },
             KeyCode::End => match app.screen {
                 Screen::Home => app.feed_list.state.select_last(),
                 Screen::Feed => app.entry_list.state.select_last(),
-                Screen::Article => {}
+                Screen::Article => {
+                    app.scroll_offset = app.current_entry.content.lines().count() as u16;
+                }
             },
             KeyCode::Enter => match app.input_mode {
                 InputMode::Normal => match app.screen {

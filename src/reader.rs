@@ -214,10 +214,5 @@ pub fn read_title(xml: &str) -> Result<String, Box<dyn Error>> {
 }
 
 fn clean_content(content: String) -> String {
-    content
-        .replace("]]>", "")
-        .lines()
-        .filter(|line| !line.trim().is_empty())
-        .collect::<Vec<&str>>()
-        .join("\n")
+    content.replace("]]>", "").replace("<![CDATA[", "")
 }
