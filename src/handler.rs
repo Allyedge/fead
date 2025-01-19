@@ -23,18 +23,25 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             KeyCode::Esc => match app.screen {
                 Screen::Home => app.input_mode = InputMode::Editing,
                 Screen::Feed => app.screen = Screen::Home,
-                Screen::Article => app.screen = Screen::Feed,
+                Screen::Article => {
+                    app.scroll_offset = 0;
+                    app.screen = Screen::Feed
+                }
             },
             KeyCode::Left => match app.screen {
                 Screen::Home => {}
                 Screen::Feed => app.screen = Screen::Home,
-                Screen::Article => app.screen = Screen::Feed,
+                Screen::Article => {
+                    app.scroll_offset = 0;
+                    app.screen = Screen::Feed;
+                }
             },
             KeyCode::Down => match app.screen {
                 Screen::Home => app.feed_list.state.select_next(),
                 Screen::Feed => app.entry_list.state.select_next(),
                 Screen::Article => {
-                    if app.scroll_offset < app.current_entry.content.len() as u16 {
+                    let lines = app.current_entry.content.lines().count() as u16;
+                    if app.scroll_offset < lines.saturating_sub(1) {
                         app.scroll_offset += 1;
                     }
                 }

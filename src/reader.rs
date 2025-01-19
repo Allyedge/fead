@@ -25,6 +25,29 @@ fn read_generator(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Strin
     Ok(String::new())
 }
 
+fn read_channel_title(
+    reader: &mut Reader<&[u8]>,
+    buf: &mut Vec<u8>,
+) -> Result<String, Box<dyn Error>> {
+    loop {
+        match reader.read_event_into(buf)? {
+            Event::Start(element) => {
+                if element.name().as_ref() == b"title" {
+                    return Ok(reader.read_text(QName(b"title"))?.to_string());
+                }
+            }
+            Event::End(element) => {
+                if element.name().as_ref() == b"title" {
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(String::new())
+}
+
 fn read_entry(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box<dyn Error>> {
     let mut entry = Entry {
         title: String::new(),
@@ -61,55 +84,6 @@ fn read_entry(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Bo
             _ => {}
         }
     }
-}
-
-fn read_channel_title(
-    reader: &mut Reader<&[u8]>,
-    buf: &mut Vec<u8>,
-) -> Result<String, Box<dyn Error>> {
-    loop {
-        match reader.read_event_into(buf)? {
-            Event::Start(element) => {
-                if element.name().as_ref() == b"title" {
-                    return Ok(reader.read_text(QName(b"title"))?.to_string());
-                }
-            }
-            Event::End(element) => {
-                if element.name().as_ref() == b"title" {
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-
-    Ok(String::new())
-}
-
-fn read_channel(
-    reader: &mut Reader<&[u8]>,
-    buf: &mut Vec<u8>,
-) -> Result<Vec<Entry>, Box<dyn Error>> {
-    let mut entries = Vec::new();
-
-    loop {
-        match reader.read_event_into(buf)? {
-            Event::Start(element) => {
-                if let QName(b"item") = element.name() {
-                    let entry = read_item(reader, buf)?;
-                    entries.push(entry);
-                }
-            }
-            Event::End(element) => {
-                if element.name().as_ref() == b"channel" {
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-
-    Ok(entries)
 }
 
 fn read_item(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box<dyn Error>> {
@@ -150,6 +124,32 @@ fn read_item(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box
     }
 }
 
+fn read_channel(
+    reader: &mut Reader<&[u8]>,
+    buf: &mut Vec<u8>,
+) -> Result<Vec<Entry>, Box<dyn Error>> {
+    let mut entries = Vec::new();
+
+    loop {
+        match reader.read_event_into(buf)? {
+            Event::Start(element) => {
+                if let QName(b"item") = element.name() {
+                    let entry = read_item(reader, buf)?;
+                    entries.push(entry);
+                }
+            }
+            Event::End(element) => {
+                if element.name().as_ref() == b"channel" {
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(entries)
+}
+
 pub fn read_entries(xml: &str) -> Result<Vec<Entry>, Box<dyn Error>> {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
@@ -163,11 +163,15 @@ pub fn read_entries(xml: &str) -> Result<Vec<Entry>, Box<dyn Error>> {
             Ok(Event::Eof) => break,
             Ok(Event::Start(e)) => match e.name() {
                 QName(b"entry") => {
-                    let entry = read_entry(&mut reader, &mut buf)?;
+                    let mut entry = read_entry(&mut reader, &mut buf)?;
+                    entry.content = clean_content(entry.content);
                     entries.push(entry);
                 }
                 QName(b"channel") => {
-                    let channel_entries = read_channel(&mut reader, &mut buf)?;
+                    let mut channel_entries = read_channel(&mut reader, &mut buf)?;
+                    for entry in &mut channel_entries {
+                        entry.content = clean_content(entry.content.clone());
+                    }
                     entries.extend(channel_entries);
                 }
                 _ => (),
@@ -207,4 +211,8 @@ pub fn read_title(xml: &str) -> Result<String, Box<dyn Error>> {
     buf.clear();
 
     Ok(String::new())
+}
+
+fn clean_content(content: String) -> String {
+    content.replace("]]>", "")
 }
