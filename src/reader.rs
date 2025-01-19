@@ -182,12 +182,12 @@ pub fn read_entries(xml: &str) -> Result<Vec<Entry>, Box<dyn Error>> {
             Err(e) => return Err(e.into()),
             Ok(Event::Eof) => break,
             Ok(Event::Start(e)) => match e.name() {
-                QName(b"entry") => {
-                    let mut entry = read_entry(&mut reader, &mut buf)?;
+                QName(b"item") | QName(b"entry") => {
+                    let mut entry = read_item(&mut reader, &mut buf)?;
                     entry.content = clean_content(entry.content);
                     entries.push(entry);
                 }
-                QName(b"channel") => {
+                QName(b"channel") | QName(b"feed") => {
                     let mut channel_entries = read_channel(&mut reader, &mut buf)?;
                     for entry in &mut channel_entries {
                         entry.content = clean_content(entry.content.clone());
@@ -198,9 +198,8 @@ pub fn read_entries(xml: &str) -> Result<Vec<Entry>, Box<dyn Error>> {
             },
             _ => (),
         }
+        buf.clear();
     }
-
-    buf.clear();
 
     Ok(entries)
 }
