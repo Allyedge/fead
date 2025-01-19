@@ -29,6 +29,12 @@ pub struct EntryList {
     pub state: ListState,
 }
 
+#[derive(Debug)]
+pub struct ConfirmationPopup {
+    pub message: String,
+    pub selected: bool,
+}
+
 /// Application.
 #[derive(Debug)]
 pub struct App {
@@ -41,6 +47,7 @@ pub struct App {
     pub entry_list: EntryList,
     pub current_entry: Entry,
     pub scroll_offset: u16,
+    pub confirmation_popup: Option<ConfirmationPopup>,
 }
 
 impl Default for App {
@@ -64,6 +71,7 @@ impl Default for App {
                 content: String::new(),
             },
             scroll_offset: 0,
+            confirmation_popup: None,
         }
     }
 }

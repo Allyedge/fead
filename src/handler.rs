@@ -1,5 +1,5 @@
 use crate::{
-    app::{App, AppResult, InputMode},
+    app::{App, AppResult, ConfirmationPopup, InputMode},
     entries::load_entries,
     feeds::FeedsManager,
     fetch::fetch_content,
@@ -18,8 +18,41 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
         app.quit();
     }
 
+    if app.confirmation_popup.is_some() {
+        match key_event.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                if let Some(_popup) = &app.confirmation_popup {
+                    if let Some(selected) = app.feed_list.state.selected() {
+                        app.feed_list.items.remove(selected);
+                        app.feed_list.items.persist()?;
+                        app.feed_list.state.select_previous();
+                        app.confirmation_popup = None;
+                    }
+                }
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') => {
+                if let Some(_popup) = &app.confirmation_popup {
+                    app.confirmation_popup = None;
+                }
+            }
+            _ => {}
+        }
+
+        return Ok(());
+    }
+
     match app.input_mode {
         InputMode::Normal => match key_event.code {
+            KeyCode::Delete => {
+                if let Screen::Home = app.screen {
+                    if let Some(_selected) = app.feed_list.state.selected() {
+                        app.confirmation_popup = Some(ConfirmationPopup {
+                            message: "Are you sure you want to delete the feed? (Y/N)".to_string(),
+                            selected: false,
+                        });
+                    }
+                }
+            }
             KeyCode::Esc => match app.screen {
                 Screen::Home => app.input_mode = InputMode::Editing,
                 Screen::Feed => app.screen = Screen::Home,

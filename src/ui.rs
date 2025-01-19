@@ -2,7 +2,9 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, HighlightSpacing, List, ListItem, Paragraph, Wrap},
+    widgets::{
+        Block, BorderType, Borders, Clear, HighlightSpacing, List, ListItem, Paragraph, Wrap,
+    },
     Frame,
 };
 use tui_markdown::from_str;
@@ -38,6 +40,10 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             render_help_message(app, frame, chunks[0]);
             render_input_field(app, frame, chunks[1]);
             render_feed_list(app, frame, chunks[2]);
+
+            if app.confirmation_popup.is_some() {
+                render_confirmation_popup(app, frame, frame.area());
+            }
         }
         Screen::Feed => {
             let chunks = Layout::default()
@@ -201,4 +207,49 @@ fn render_article(app: &mut App, frame: &mut Frame, area: Rect) {
         .scroll((app.scroll_offset, 0));
 
     frame.render_widget(paragraph, area);
+}
+
+fn render_confirmation_popup(app: &App, frame: &mut Frame, area: Rect) {
+    if let Some(popup) = &app.confirmation_popup {
+        let block = Block::default()
+            .title("Confirmation")
+            .borders(Borders::ALL)
+            .style(Style::default().fg(Color::Red).bg(Color::Black));
+
+        let paragraph = Paragraph::new(popup.message.as_str())
+            .block(block)
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::Red));
+
+        let popup_area = centered_rect(60, 10, area);
+
+        frame.render_widget(Clear, popup_area);
+        frame.render_widget(paragraph, popup_area);
+    }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(area);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
