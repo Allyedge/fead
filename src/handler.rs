@@ -33,12 +33,20 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             KeyCode::Down => match app.screen {
                 Screen::Home => app.feed_list.state.select_next(),
                 Screen::Feed => app.entry_list.state.select_next(),
-                Screen::Article => {}
+                Screen::Article => {
+                    if app.scroll_offset < app.current_entry.content.len() as u16 {
+                        app.scroll_offset += 1;
+                    }
+                }
             },
             KeyCode::Up => match app.screen {
                 Screen::Home => app.feed_list.state.select_previous(),
                 Screen::Feed => app.entry_list.state.select_previous(),
-                Screen::Article => {}
+                Screen::Article => {
+                    if app.scroll_offset > 0 {
+                        app.scroll_offset -= 1;
+                    }
+                }
             },
             KeyCode::Home => match app.screen {
                 Screen::Home => app.feed_list.state.select_first(),

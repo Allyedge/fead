@@ -197,7 +197,8 @@ fn render_article(app: &mut App, frame: &mut Frame, area: Rect) {
     let paragraph = Paragraph::new(text)
         .block(Block::default().borders(Borders::NONE))
         .style(Style::default().fg(Color::Cyan))
-        .wrap(Wrap { trim: true });
+        .wrap(Wrap { trim: true })
+        .scroll((app.scroll_offset, 0));
 
     frame.render_widget(paragraph, area);
 }

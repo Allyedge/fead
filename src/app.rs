@@ -40,6 +40,7 @@ pub struct App {
     pub feed_list: FeedList,
     pub entry_list: EntryList,
     pub current_entry: Entry,
+    pub scroll_offset: u16,
 }
 
 impl Default for App {
@@ -62,6 +63,7 @@ impl Default for App {
                 description: String::new(),
                 content: String::new(),
             },
+            scroll_offset: 0,
         }
     }
 }
