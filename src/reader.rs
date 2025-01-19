@@ -112,16 +112,36 @@ fn read_item(reader: &mut Reader<&[u8]>, buf: &mut Vec<u8>) -> Result<Entry, Box
                     let content = reader.read_text(QName(b"content:encoded"))?;
                     entry.content.push_str(&content);
                 }
+                QName(b"summary") => {
+                    let summary = reader.read_text(QName(b"summary"))?;
+                    entry.description.push_str(&summary);
+                }
+                QName(b"media:description") => {
+                    let media_description = reader.read_text(QName(b"media:description"))?;
+                    entry.description.push_str(&media_description);
+                }
+                QName(b"media:content") => {
+                    let media_content = reader.read_text(QName(b"media:content"))?;
+                    entry.content.push_str(&media_content);
+                }
+                QName(b"media:title") => {
+                    let media_title = reader.read_text(QName(b"media:title"))?;
+                    entry.title.push_str(&media_title);
+                }
                 _ => (),
             },
             Event::End(element) => {
-                if element.name().as_ref() == b"item" {
-                    return Ok(entry);
+                if element.name().as_ref() == b"item" || element.name().as_ref() == b"entry" {
+                    break;
                 }
             }
-            _ => {}
+            Event::Eof => break,
+            _ => (),
         }
+        buf.clear();
     }
+
+    Ok(entry)
 }
 
 fn read_channel(

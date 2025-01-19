@@ -114,9 +114,12 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                             let data =
                                 fetch_content(&app.feed_list.items.get(selected).unwrap().url)
                                     .await?;
-                            app.entry_list.items = load_entries(data.as_str())?;
-                            app.entry_list.state.select_first();
-                            app.screen = Screen::Feed;
+
+                            if let Some(data) = data {
+                                app.entry_list.items = load_entries(data.as_str())?;
+                                app.entry_list.state.select_first();
+                                app.screen = Screen::Feed;
+                            }
                         }
                     }
                     Screen::Feed => {
@@ -135,13 +138,19 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
         InputMode::Editing => {
             match key_event.code {
                 KeyCode::Enter => {
-                    app.feed_list.items.add_feed(
-                        read_title(fetch_content(app.input.value()).await.unwrap().as_str())?,
-                        app.input.value().to_string(),
-                    );
-                    app.feed_list.items.persist()?;
-                    app.input.reset();
-                    app.input_mode = InputMode::Normal;
+                    let url = app.input.value().to_string();
+                    if let Some(content) = fetch_content(&url).await? {
+                        app.feed_list.items.add_feed(
+                            read_title(&content).unwrap_or_else(|_| "UNTITLED".to_string()),
+                            app.input.value().to_string(),
+                        );
+                        app.feed_list.items.persist()?;
+                        app.input.reset();
+                        app.input_mode = InputMode::Normal;
+                    } else {
+                        app.input.reset();
+                        app.input_mode = InputMode::Normal;
+                    }
                 }
                 KeyCode::Esc => app.input_mode = InputMode::Normal,
                 _ => {}

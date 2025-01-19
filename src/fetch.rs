@@ -1,9 +1,23 @@
-use std::error::Error;
+use reqwest::Url;
 
-pub async fn fetch_content(url: &str) -> Result<String, Box<dyn Error>> {
-    let resp = reqwest::get(url).await?;
+use crate::app::AppResult;
 
-    let content = resp.text().await?;
+pub async fn fetch_content(url: &str) -> AppResult<Option<String>> {
+    if Url::parse(url).is_err() {
+        return Ok(None);
+    }
 
-    Ok(content)
+    let response = reqwest::get(url).await?;
+
+    if !response.status().is_success() {
+        return Ok(None);
+    }
+
+    let content = response.text().await?;
+
+    if content.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(content))
 }
