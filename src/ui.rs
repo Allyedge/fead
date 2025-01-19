@@ -229,6 +229,7 @@ fn render_confirmation_popup(app: &App, frame: &mut Frame, area: Rect) {
         let button_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(1), Constraint::Length(3)].as_ref())
+            .margin(1)
             .split(popup_area);
 
         let button_row = Layout::default()
