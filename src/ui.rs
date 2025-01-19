@@ -212,19 +212,15 @@ fn render_article(app: &mut App, frame: &mut Frame, area: Rect) {
 fn render_confirmation_popup(app: &App, frame: &mut Frame, area: Rect) {
     if let Some(popup) = &app.confirmation_popup {
         let block = Block::default()
-            .title("Confirmation")
+            .title_alignment(Alignment::Center)
+            .title(popup.message.as_str())
             .borders(Borders::ALL)
             .style(Style::default().fg(Color::Red).bg(Color::Black));
 
-        let paragraph = Paragraph::new(popup.message.as_str())
-            .block(block.clone())
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::Red).bg(Color::Black));
-
-        let popup_area = centered_rect(60, 30, area);
+        let popup_area = centered_rect(60, 25, area);
 
         frame.render_widget(Clear, popup_area);
-        frame.render_widget(paragraph, popup_area);
+        frame.render_widget(block, popup_area);
 
         let button_layout = Layout::default()
             .direction(Direction::Vertical)
@@ -249,14 +245,14 @@ fn render_confirmation_popup(app: &App, frame: &mut Frame, area: Rect) {
             Style::default().fg(Color::White)
         };
 
-        let yes_button = Paragraph::new("Yes")
-            .block(Block::default().borders(Borders::ALL))
-            .style(yes_button_style)
-            .alignment(Alignment::Center);
-
         let no_button = Paragraph::new("No")
             .block(Block::default().borders(Borders::ALL))
             .style(no_button_style)
+            .alignment(Alignment::Center);
+
+        let yes_button = Paragraph::new("Yes")
+            .block(Block::default().borders(Borders::ALL))
+            .style(yes_button_style)
             .alignment(Alignment::Center);
 
         frame.render_widget(no_button, button_row[0]);
