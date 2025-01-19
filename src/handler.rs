@@ -20,19 +20,27 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
 
     if app.confirmation_popup.is_some() {
         match key_event.code {
-            KeyCode::Char('y') | KeyCode::Char('Y') => {
-                if let Some(_popup) = &app.confirmation_popup {
-                    if let Some(selected) = app.feed_list.state.selected() {
-                        app.feed_list.items.remove(selected);
-                        app.feed_list.items.persist()?;
-                        app.feed_list.state.select_previous();
-                        app.confirmation_popup = None;
-                    }
+            KeyCode::Left | KeyCode::Right => {
+                if let Some(popup) = &mut app.confirmation_popup {
+                    popup.selected_button = (popup.selected_button + 1) % 2;
                 }
             }
-            KeyCode::Char('n') | KeyCode::Char('N') => {
-                if let Some(_popup) = &app.confirmation_popup {
-                    app.confirmation_popup = None;
+            KeyCode::Enter => {
+                if let Some(popup) = &app.confirmation_popup {
+                    match popup.selected_button {
+                        0 => {
+                            app.confirmation_popup = None;
+                        }
+                        1 => {
+                            if let Some(selected) = app.feed_list.state.selected() {
+                                app.feed_list.items.remove(selected);
+                                app.feed_list.items.persist()?;
+                                app.feed_list.state.select_previous();
+                                app.confirmation_popup = None;
+                            }
+                        }
+                        _ => {}
+                    }
                 }
             }
             _ => {}
@@ -44,13 +52,12 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
     match app.input_mode {
         InputMode::Normal => match key_event.code {
             KeyCode::Delete => {
-                if let Screen::Home = app.screen {
-                    if let Some(_selected) = app.feed_list.state.selected() {
-                        app.confirmation_popup = Some(ConfirmationPopup {
-                            message: "Are you sure you want to delete the feed? (Y/N)".to_string(),
-                            selected: false,
-                        });
-                    }
+                if let Some(_selected) = app.feed_list.state.selected() {
+                    app.confirmation_popup = Some(ConfirmationPopup {
+                        message: "Are you sure you want to delete the feed?".to_string(),
+                        selected: false,
+                        selected_button: 0,
+                    });
                 }
             }
             KeyCode::Esc => match app.screen {

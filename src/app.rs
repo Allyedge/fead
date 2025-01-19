@@ -33,6 +33,7 @@ pub struct EntryList {
 pub struct ConfirmationPopup {
     pub message: String,
     pub selected: bool,
+    pub selected_button: usize,
 }
 
 /// Application.

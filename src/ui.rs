@@ -217,14 +217,49 @@ fn render_confirmation_popup(app: &App, frame: &mut Frame, area: Rect) {
             .style(Style::default().fg(Color::Red).bg(Color::Black));
 
         let paragraph = Paragraph::new(popup.message.as_str())
-            .block(block)
+            .block(block.clone())
             .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::Red));
+            .style(Style::default().fg(Color::Red).bg(Color::Black));
 
-        let popup_area = centered_rect(60, 10, area);
+        let popup_area = centered_rect(60, 30, area);
 
         frame.render_widget(Clear, popup_area);
         frame.render_widget(paragraph, popup_area);
+
+        let button_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(1), Constraint::Length(3)].as_ref())
+            .split(popup_area);
+
+        let button_row = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+            .split(button_layout[1]);
+
+        let no_button_style = if popup.selected_button == 0 {
+            Style::default().fg(Color::Red)
+        } else {
+            Style::default().fg(Color::White)
+        };
+
+        let yes_button_style = if popup.selected_button == 1 {
+            Style::default().fg(Color::Green)
+        } else {
+            Style::default().fg(Color::White)
+        };
+
+        let yes_button = Paragraph::new("Yes")
+            .block(Block::default().borders(Borders::ALL))
+            .style(yes_button_style)
+            .alignment(Alignment::Center);
+
+        let no_button = Paragraph::new("No")
+            .block(Block::default().borders(Borders::ALL))
+            .style(no_button_style)
+            .alignment(Alignment::Center);
+
+        frame.render_widget(no_button, button_row[0]);
+        frame.render_widget(yes_button, button_row[1]);
     }
 }
 
