@@ -1,43 +1,40 @@
-use htmlentity::entity::{decode, ICodedDataTrait};
-use serde::{Deserialize, Serialize};
-
-use crate::{app::AppResult, reader::read_entries, FormatText};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Entry {
-    pub title: String,
-    pub description: String,
-    pub content: String,
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ContentKind {
+    #[default]
+    Text,
+    Html,
 }
 
-pub fn load_entries(xml: &str) -> AppResult<Vec<Entry>> {
-    let entries = read_entries(xml)?;
-
-    let mut result = vec![];
-
-    for entry in entries {
-        let raw_title = &entry.title.as_bytes().to_vec();
-        let raw_description = &entry.description.as_bytes().to_vec();
-        let raw_content = &entry.content.as_bytes().to_vec();
-
-        let decoded_title = decode(raw_title);
-        let decoded_description = decode(raw_description);
-        let decoded_content = decode(raw_content);
-
-        let title = decoded_title
-            .to_chars()?
-            .iter()
-            .collect::<String>()
-            .strip_trailing_newline();
-        let description = decoded_description.to_chars()?.iter().collect::<String>();
-        let content = decoded_content.to_chars()?.iter().collect::<String>();
-
-        result.push(Entry {
-            title: title.to_string(),
-            description: description.to_string(),
-            content: content.to_string(),
-        });
+impl ContentKind {
+    pub fn is_markup(self) -> bool {
+        self == Self::Html
     }
+}
 
-    Ok(result)
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct EntryContent {
+    pub value: String,
+    pub kind: ContentKind,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Entry {
+    pub id: Option<String>,
+    pub title: String,
+    pub link: Option<String>,
+    pub summary: Option<EntryContent>,
+    pub content: Option<EntryContent>,
+    pub published: Option<String>,
+}
+
+impl Entry {
+    pub fn body(&self) -> Option<&EntryContent> {
+        self.content.as_ref().or(self.summary.as_ref())
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct FeedDocument {
+    pub title: String,
+    pub entries: Vec<Entry>,
 }

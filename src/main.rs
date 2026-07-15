@@ -9,27 +9,29 @@ use ratatui::Terminal;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
-    let mut app = App::new();
+    let mut app = App::new()?;
 
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(250);
+    let events = EventHandler::new();
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
 
-    while app.running {
-        // Render the user interface.
-        tui.draw(&mut app)?;
-        // Handle events.
-        match tui.events.next().await? {
-            Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app).await?,
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+    let run_result = async {
+        while app.running {
+            tui.draw(&mut app)?;
+            match tui.events.next().await? {
+                Event::Mouse(_) | Event::Resize(_, _) => {}
+                Event::Key(key_event) => handle_key_events(key_event, &mut app).await?,
+            }
         }
+        Ok::<(), Box<dyn std::error::Error>>(())
     }
+    .await;
 
-    tui.exit()?;
+    let exit_result = tui.exit();
+    run_result?;
+    exit_result?;
 
     Ok(())
 }

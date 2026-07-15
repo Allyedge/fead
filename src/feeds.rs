@@ -1,14 +1,10 @@
-use std::{
-    fs::{self, File},
-    io::Write,
-    path::Path,
-};
+use std::{fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
 use crate::app::AppResult;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Feed {
     pub title: String,
     pub url: String,
@@ -22,9 +18,8 @@ pub trait FeedsManager {
 
 impl FeedsManager for Vec<Feed> {
     fn persist(&self) -> AppResult<()> {
-        let mut file = File::create("feeds.json")?;
-        let feeds_json = serde_json::to_string(self)?;
-        file.write_all(feeds_json.as_bytes())?;
+        let feeds_json = serde_json::to_string_pretty(self)?;
+        fs::write("feeds.json", format!("{feeds_json}\n"))?;
         Ok(())
     }
 
@@ -39,25 +34,17 @@ impl FeedsManager for Vec<Feed> {
 
 pub fn load_feeds() -> AppResult<Vec<Feed>> {
     let path = Path::new("feeds.json");
-    let exists = Path::exists(path);
 
-    match exists {
-        true => {
-            let file = File::open(path)?;
-
-            let metadata = file.metadata()?;
-
-            if metadata.is_file() && metadata.len() == 0 {
-                fs::write(path, "[]").unwrap();
-            }
-
-            let feeds: Vec<Feed> = serde_json::from_reader(file)?;
-            Ok(feeds)
-        }
-        false => {
-            let _ = File::create(path)?;
-            let feeds: Vec<Feed> = vec![];
-            Ok(feeds)
-        }
+    if !path.exists() {
+        fs::write(path, "[]\n")?;
+        return Ok(Vec::new());
     }
+
+    let contents = fs::read_to_string(path)?;
+    if contents.trim().is_empty() {
+        fs::write(path, "[]\n")?;
+        return Ok(Vec::new());
+    }
+
+    Ok(serde_json::from_str(&contents)?)
 }

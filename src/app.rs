@@ -8,10 +8,9 @@ use crate::{
 use ratatui::widgets::ListState;
 use tui_input::Input;
 
-/// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum InputMode {
     Normal,
     Editing,
@@ -32,14 +31,32 @@ pub struct EntryList {
 #[derive(Debug)]
 pub struct ConfirmationPopup {
     pub message: String,
-    pub selected: bool,
-    pub selected_button: usize,
+    pub choice: ConfirmationChoice,
 }
 
-/// Application.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConfirmationChoice {
+    Cancel,
+    Delete,
+}
+
+impl ConfirmationChoice {
+    pub fn toggle(&mut self) {
+        *self = match self {
+            Self::Cancel => Self::Delete,
+            Self::Delete => Self::Cancel,
+        };
+    }
+}
+
+#[derive(Debug)]
+pub enum Notice {
+    Error(String),
+    Info(String),
+}
+
 #[derive(Debug)]
 pub struct App {
-    /// Is the application running?
     pub running: bool,
     pub screen: Screen,
     pub input: Input,
@@ -48,46 +65,54 @@ pub struct App {
     pub entry_list: EntryList,
     pub current_entry: Entry,
     pub scroll_offset: u16,
+    pub max_scroll: u16,
     pub confirmation_popup: Option<ConfirmationPopup>,
+    pub notice: Option<Notice>,
 }
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
+impl App {
+    pub fn new() -> AppResult<Self> {
+        let feeds = load_feeds()?;
+        let mut feed_state = ListState::default();
+        if !feeds.is_empty() {
+            feed_state.select_first();
+        }
+
+        Ok(Self {
             running: true,
             screen: Screen::Home,
             input: Input::default(),
             input_mode: InputMode::Normal,
             feed_list: FeedList {
-                items: load_feeds().unwrap(),
-                state: ListState::default(),
+                items: feeds,
+                state: feed_state,
             },
             entry_list: EntryList {
                 items: vec![],
                 state: ListState::default(),
             },
-            current_entry: Entry {
-                title: String::new(),
-                description: String::new(),
-                content: String::new(),
-            },
+            current_entry: Entry::default(),
             scroll_offset: 0,
+            max_scroll: 0,
             confirmation_popup: None,
-        }
-    }
-}
-
-impl App {
-    /// Constructs a new instance of [`App`].
-    pub fn new() -> Self {
-        Self::default()
+            notice: None,
+        })
     }
 
-    /// Handles the tick event of the terminal.
-    pub fn tick(&self) {}
-
-    /// Set running to false to quit the application.
     pub fn quit(&mut self) {
         self.running = false;
+    }
+
+    pub fn show_error(&mut self, message: impl Into<String>) {
+        self.notice = Some(Notice::Error(message.into()));
+    }
+
+    pub fn show_info(&mut self, message: impl Into<String>) {
+        self.notice = Some(Notice::Info(message.into()));
+    }
+
+    pub fn update_article_viewport(&mut self, line_count: usize, viewport_height: u16) {
+        self.max_scroll = line_count.saturating_sub(viewport_height as usize) as u16;
+        self.scroll_offset = self.scroll_offset.min(self.max_scroll);
     }
 }
