@@ -1,8 +1,10 @@
+mod model;
+
+pub use model::{download_model, model_dir, model_ready, TtsModelEvent};
+
 use std::fmt;
 
 use sherpa_onnx::{OfflineTts, OfflineTtsConfig, OfflineTtsKokoroModelConfig};
-
-use crate::tts_model::{model_dir, model_ready};
 
 pub struct TTS {
     #[allow(dead_code)]

@@ -3,7 +3,7 @@ use std::io;
 use fead::app::{App, AppResult};
 use fead::event::{Event, EventHandler};
 use fead::handler::{handle_key_events, handle_tts_model_event};
-use fead::tts_model::TtsModelEvent;
+use fead::tts::TtsModelEvent;
 use fead::tui::Tui;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;

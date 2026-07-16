@@ -1,8 +1,10 @@
 use std::error;
 
 use crate::{
-    entries::Entry,
-    feeds::{load_feeds, Feed},
+    feed::{
+        entries::Entry,
+        feeds::{load_feeds, Feed},
+    },
     screen::Screen,
     tts::TTS,
 };

@@ -1,18 +1,8 @@
 pub mod app;
-
 pub mod event;
-
-pub mod ui;
-
-pub mod tui;
-
+pub mod feed;
 pub mod handler;
-
-pub mod entries;
-pub mod feeds;
-pub mod fetch;
-pub mod reader;
 pub mod screen;
-
 pub mod tts;
-pub mod tts_model;
+pub mod tui;
+pub mod ui;

@@ -4,7 +4,7 @@ use feed_rs::{
 };
 use markup5ever_rcdom::NodeData;
 
-use crate::entries::{ContentKind, Entry, EntryContent, FeedDocument};
+use crate::feed::entries::{ContentKind, Entry, EntryContent, FeedDocument};
 
 pub fn parse_feed(source: &[u8]) -> Result<FeedDocument, ParseFeedError> {
     parser::parse(source).map(normalize_feed)
@@ -112,7 +112,7 @@ fn collect_text(node: &htmd::Node, output: &mut String) {
 
 #[cfg(test)]
 mod tests {
-    use crate::entries::ContentKind;
+    use crate::feed::entries::ContentKind;
 
     use super::parse_feed;
 

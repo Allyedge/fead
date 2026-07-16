@@ -373,8 +373,10 @@ mod tests {
             App, ConfirmationChoice, ConfirmationKind, ConfirmationPopup, EntryList, FeedList,
             InputMode,
         },
-        entries::{ContentKind, Entry, EntryContent},
-        feeds::Feed,
+        feed::{
+            entries::{ContentKind, Entry, EntryContent},
+            feeds::Feed,
+        },
         screen::Screen,
     };
 
