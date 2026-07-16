@@ -1,14 +1,17 @@
 mod model;
+mod narration;
+mod text;
 
 pub use model::{download_model, model_dir, model_ready, TtsModelEvent};
+pub use narration::{spawn_narration, NarrationEvent, NarrationHandle, NarrationUiState};
+pub use text::{build_narration_units, NarrationTextError, NarrationUnit};
 
 use std::fmt;
 
 use sherpa_onnx::{OfflineTts, OfflineTtsConfig, OfflineTtsKokoroModelConfig};
 
 pub struct TTS {
-    #[allow(dead_code)]
-    engine: OfflineTts,
+    pub engine: OfflineTts,
 }
 
 impl fmt::Debug for TTS {

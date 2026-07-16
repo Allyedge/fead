@@ -1,4 +1,5 @@
 use std::error;
+use std::sync::Arc;
 
 use crate::{
     feed::{
@@ -6,7 +7,7 @@ use crate::{
         feeds::{load_feeds, Feed},
     },
     screen::Screen,
-    tts::TTS,
+    tts::{NarrationUiState, TTS},
 };
 use ratatui::widgets::ListState;
 use tui_input::Input;
@@ -78,8 +79,9 @@ pub struct App {
     pub max_scroll: u16,
     pub confirmation_popup: Option<ConfirmationPopup>,
     pub notice: Option<Notice>,
-    pub tts: Option<TTS>,
+    pub tts: Option<Arc<TTS>>,
     pub tts_downloading: bool,
+    pub narration: NarrationUiState,
 }
 
 impl App {
@@ -110,6 +112,7 @@ impl App {
             notice: None,
             tts: None,
             tts_downloading: false,
+            narration: NarrationUiState::Idle,
         })
     }
 

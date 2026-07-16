@@ -212,13 +212,22 @@ fn render_article(app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_status(app: &App, frame: &mut Frame, area: Rect) {
-    let (text, style) = match &app.notice {
-        Some(Notice::Error(message)) => (message.as_str(), Style::new().fg(DANGER)),
-        Some(Notice::Info(message)) => (message.as_str(), Style::new().fg(SUCCESS)),
-        None if app.input_mode == InputMode::Editing => {
-            ("Enter add  ·  Esc cancel", Style::new().fg(ACCENT))
-        }
-        None => (help_for(app.screen), Style::new().fg(Color::White)),
+    let narration_status = if app.screen == Screen::Article {
+        app.narration.status_line()
+    } else {
+        None
+    };
+
+    let (text, style) = if let Some(Notice::Error(message)) = &app.notice {
+        (message.clone(), Style::new().fg(DANGER))
+    } else if let Some(Notice::Info(message)) = &app.notice {
+        (message.clone(), Style::new().fg(SUCCESS))
+    } else if app.input_mode == InputMode::Editing {
+        ("Enter add  ·  Esc cancel".to_string(), Style::new().fg(ACCENT))
+    } else if let Some(status) = narration_status {
+        (status, Style::new().fg(SUCCESS))
+    } else {
+        (help_for(app.screen).to_string(), Style::new().fg(Color::White))
     };
     frame.render_widget(Paragraph::new(text).style(style), area);
 }
@@ -339,7 +348,7 @@ fn help_for(screen: Screen) -> &'static str {
         }
         Screen::Feed => "↑/↓ move  ·  Enter open  ·  Esc back  ·  t TTS  ·  q quit",
         Screen::Article => {
-            "↑/↓ scroll  ·  PgUp/PgDn page  ·  Esc back  ·  t TTS  ·  q quit"
+            "↑/↓ scroll  ·  Space play/pause  ·  s stop  ·  Esc back  ·  t TTS  ·  q quit"
         }
     }
 }
@@ -478,6 +487,7 @@ mod tests {
             notice: None,
             tts: None,
             tts_downloading: false,
+            narration: crate::tts::NarrationUiState::Idle,
         }
     }
 

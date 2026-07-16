@@ -5,10 +5,10 @@ mod navigation;
 mod normal;
 mod tts;
 
-pub use tts::handle_tts_model_event;
+pub use tts::{handle_narration_event, handle_tts_model_event};
 
 use crate::app::{App, AppResult, InputMode};
-use crate::tts::TtsModelEvent;
+use crate::tts::{NarrationHandle, TtsModelEvent};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tokio::sync::mpsc;
 
@@ -20,9 +20,11 @@ pub async fn handle_key_events(
     key: KeyEvent,
     app: &mut App,
     model_tx: &mpsc::UnboundedSender<TtsModelEvent>,
+    narration: &NarrationHandle,
 ) -> AppResult<()> {
     if key.modifiers.contains(KeyModifiers::CONTROL) && matches!(key.code, KeyCode::Char('c' | 'C'))
     {
+        tts::stop_narration(app, narration);
         app.quit();
         return Ok(());
     }
@@ -33,7 +35,7 @@ pub async fn handle_key_events(
     }
 
     match app.input_mode {
-        InputMode::Normal => handle_normal_mode(key, app).await?,
+        InputMode::Normal => handle_normal_mode(key, app, narration).await?,
         InputMode::Editing => handle_editing_mode(key, app).await?,
     }
 

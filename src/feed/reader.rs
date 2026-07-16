@@ -84,7 +84,7 @@ fn normalize_title(title: Text) -> String {
     content.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-fn html_to_plain_text(html: &str) -> String {
+pub(crate) fn html_to_plain_text(html: &str) -> String {
     let converter = htmd::HtmlToMarkdown::new();
     let Ok(document) = converter.html_to_tree(html) else {
         return html.to_string();

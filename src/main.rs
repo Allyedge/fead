@@ -2,8 +2,8 @@ use std::io;
 
 use fead::app::{App, AppResult};
 use fead::event::{Event, EventHandler};
-use fead::handler::{handle_key_events, handle_tts_model_event};
-use fead::tts::TtsModelEvent;
+use fead::handler::{handle_key_events, handle_narration_event, handle_tts_model_event};
+use fead::tts::{spawn_narration, TtsModelEvent};
 use fead::tui::Tui;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
@@ -20,6 +20,7 @@ async fn main() -> AppResult<()> {
     tui.init()?;
 
     let (model_tx, mut model_rx) = mpsc::unbounded_channel::<TtsModelEvent>();
+    let (narration, mut narration_rx) = spawn_narration();
 
     let run_result = async {
         while app.running {
@@ -27,14 +28,19 @@ async fn main() -> AppResult<()> {
             tokio::select! {
                 event = model_rx.recv() => {
                     if let Some(event) = event {
-                        handle_tts_model_event(&mut app, event);
+                        handle_tts_model_event(&mut app, event, &narration);
+                    }
+                }
+                event = narration_rx.recv() => {
+                    if let Some(event) = event {
+                        handle_narration_event(&mut app, event);
                     }
                 }
                 event = tui.events.next() => {
                     match event? {
                         Event::Mouse(_) | Event::Resize(_, _) => {}
                         Event::Key(key_event) => {
-                            handle_key_events(key_event, &mut app, &model_tx).await?;
+                            handle_key_events(key_event, &mut app, &model_tx, &narration).await?;
                         }
                     }
                 }
@@ -44,6 +50,7 @@ async fn main() -> AppResult<()> {
     }
     .await;
 
+    narration.shutdown();
     let exit_result = tui.exit();
     run_result?;
     exit_result?;

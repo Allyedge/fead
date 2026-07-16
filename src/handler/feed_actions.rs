@@ -6,6 +6,9 @@ use crate::feed::{
     reader::parse_feed,
 };
 use crate::screen::Screen;
+use crate::tts::NarrationHandle;
+
+use super::tts::stop_narration;
 
 #[derive(Debug)]
 pub(super) enum LoadFeedError {
@@ -70,7 +73,10 @@ pub(super) async fn add_feed(app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-pub(super) async fn open_selection(app: &mut App) -> AppResult<()> {
+pub(super) async fn open_selection(
+    app: &mut App,
+    narration: &NarrationHandle,
+) -> AppResult<()> {
     match app.screen {
         Screen::Home => {
             let Some(selected) = app.feed_list.state.selected() else {
@@ -99,6 +105,7 @@ pub(super) async fn open_selection(app: &mut App) -> AppResult<()> {
         }
         Screen::Feed => {
             if let Some(selected) = app.entry_list.state.selected() {
+                stop_narration(app, narration);
                 app.current_entry = app.entry_list.items[selected].clone();
                 app.scroll_offset = 0;
                 app.max_scroll = 0;

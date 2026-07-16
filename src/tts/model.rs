@@ -101,8 +101,8 @@ async fn download_archive(
         downloaded = downloaded.saturating_add(chunk.len() as u64);
 
         if let Some(total) = total {
-            if total > 0 {
-                let percent = ((downloaded.saturating_mul(98)) / total).min(98) as u8;
+            if let Some(raw) = downloaded.saturating_mul(98).checked_div(total) {
+                let percent = raw.min(98) as u8;
                 if percent != last_percent {
                     last_percent = percent;
                     on_progress(percent);

@@ -1,5 +1,8 @@
 use crate::app::App;
 use crate::screen::Screen;
+use crate::tts::NarrationHandle;
+
+use super::tts::stop_narration;
 
 #[derive(Clone, Copy)]
 pub(super) enum Direction {
@@ -13,12 +16,13 @@ pub(super) enum Edge {
     Last,
 }
 
-pub(super) fn go_back(app: &mut App) {
+pub(super) fn go_back(app: &mut App, narration: &NarrationHandle) {
     app.notice = None;
     match app.screen {
         Screen::Home => {}
         Screen::Feed => app.screen = Screen::Home,
         Screen::Article => {
+            stop_narration(app, narration);
             app.scroll_offset = 0;
             app.screen = Screen::Feed;
         }
