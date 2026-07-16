@@ -4,15 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bzip2 = "0.4"
 crossterm = { version = "0.29.0", features = ["event-stream"] }
 futures = "0.3.32"
 feed-rs = "2.4.0"
 htmd = "0.5.4"
 markup5ever_rcdom = "0.38.0"
 ratatui = "0.30.2"
-reqwest = "0.13.4"
+reqwest = { version = "0.13.4", features = ["stream"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
+sherpa-onnx = "1.13.4"
+tar = "0.4"
 tokio = { version = "1", features = ["full"] }
 tui-input = "0.15.3"
 tui-markdown = "0.3.8"

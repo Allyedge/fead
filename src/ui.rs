@@ -11,7 +11,7 @@ use ratatui::{
 use tui_markdown::from_str;
 
 use crate::{
-    app::{App, ConfirmationChoice, InputMode, Notice},
+    app::{App, ConfirmationChoice, ConfirmationKind, InputMode, Notice},
     screen::Screen,
 };
 
@@ -240,22 +240,26 @@ fn render_confirmation(app: &App, frame: &mut Frame) {
     let Some(popup) = &app.confirmation_popup else {
         return;
     };
-    let area = centered_fixed(frame.area(), 58, 11);
+    let (title, accept_label, accent) = match popup.kind {
+        ConfirmationKind::DeleteFeed => ("Delete Feed", "Delete", DANGER),
+        ConfirmationKind::DownloadTtsModel => ("Download TTS", "Download", ACCENT),
+    };
+    let area = centered_fixed(frame.area(), 62, 12);
     frame.render_widget(Clear, area);
     frame.render_widget(
         Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(Style::new().fg(DANGER))
+            .border_style(Style::new().fg(accent))
             .style(Style::new().bg(SURFACE))
-            .title("Delete Feed")
+            .title(title)
             .title_alignment(Alignment::Center),
         area,
     );
 
     let rows = Layout::vertical([
         Constraint::Length(1),
-        Constraint::Length(2),
+        Constraint::Length(3),
         Constraint::Length(1),
         Constraint::Length(3),
         Constraint::Length(1),
@@ -266,7 +270,8 @@ fn render_confirmation(app: &App, frame: &mut Frame) {
     frame.render_widget(
         Paragraph::new(popup.message.as_str())
             .style(Style::new().fg(TEXT))
-            .alignment(Alignment::Center),
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: true }),
         rows[1],
     );
 
@@ -284,8 +289,8 @@ fn render_confirmation(app: &App, frame: &mut Frame) {
     } else {
         Style::new().fg(Color::White)
     };
-    let delete_style = if popup.choice == ConfirmationChoice::Delete {
-        Style::new().fg(DANGER).add_modifier(Modifier::BOLD)
+    let accept_style = if popup.choice == ConfirmationChoice::Accept {
+        Style::new().fg(accent).add_modifier(Modifier::BOLD)
     } else {
         Style::new().fg(Color::White)
     };
@@ -301,13 +306,13 @@ fn render_confirmation(app: &App, frame: &mut Frame) {
         buttons[1],
     );
     frame.render_widget(
-        Paragraph::new("Delete")
+        Paragraph::new(accept_label)
             .block(
                 Block::new()
                     .borders(Borders::ALL)
-                    .border_style(delete_style),
+                    .border_style(accept_style),
             )
-            .style(delete_style)
+            .style(accept_style)
             .alignment(Alignment::Center),
         buttons[3],
     );
@@ -329,9 +334,13 @@ fn list_block(title: &'static str) -> Block<'static> {
 
 fn help_for(screen: Screen) -> &'static str {
     match screen {
-        Screen::Home => "↑/↓ move  ·  Enter open  ·  a add  ·  Backspace delete  ·  q quit",
-        Screen::Feed => "↑/↓ move  ·  Enter open  ·  Esc back  ·  q quit",
-        Screen::Article => "↑/↓ scroll  ·  PgUp/PgDn page  ·  Esc back  ·  q quit",
+        Screen::Home => {
+            "↑/↓ move  ·  Enter open  ·  a add  ·  Backspace delete  ·  t TTS  ·  q quit"
+        }
+        Screen::Feed => "↑/↓ move  ·  Enter open  ·  Esc back  ·  t TTS  ·  q quit",
+        Screen::Article => {
+            "↑/↓ scroll  ·  PgUp/PgDn page  ·  Esc back  ·  t TTS  ·  q quit"
+        }
     }
 }
 
@@ -360,7 +369,10 @@ mod tests {
     use tui_input::Input;
 
     use crate::{
-        app::{App, ConfirmationChoice, ConfirmationPopup, EntryList, FeedList, InputMode},
+        app::{
+            App, ConfirmationChoice, ConfirmationKind, ConfirmationPopup, EntryList, FeedList,
+            InputMode,
+        },
         entries::{ContentKind, Entry, EntryContent},
         feeds::Feed,
         screen::Screen,
@@ -394,6 +406,7 @@ mod tests {
         app.confirmation_popup = Some(ConfirmationPopup {
             message: "Delete selected feed?".to_string(),
             choice: ConfirmationChoice::Cancel,
+            kind: ConfirmationKind::DeleteFeed,
         });
         terminal.draw(|frame| render(&mut app, frame)).unwrap();
         let lines = buffer_lines(terminal.backend().buffer());
@@ -461,6 +474,8 @@ mod tests {
             max_scroll: 0,
             confirmation_popup: None,
             notice: None,
+            tts: None,
+            tts_downloading: false,
         }
     }
 

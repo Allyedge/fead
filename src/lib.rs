@@ -13,3 +13,6 @@ pub mod feeds;
 pub mod fetch;
 pub mod reader;
 pub mod screen;
+
+pub mod tts;
+pub mod tts_model;

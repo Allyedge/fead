@@ -1,2 +1,5 @@
 /target
 feeds.json
+/models/
+/kokoro-en-v0_19/
+*.tar.bz2

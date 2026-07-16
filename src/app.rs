@@ -4,6 +4,7 @@ use crate::{
     entries::Entry,
     feeds::{load_feeds, Feed},
     screen::Screen,
+    tts::TTS,
 };
 use ratatui::widgets::ListState;
 use tui_input::Input;
@@ -28,23 +29,30 @@ pub struct EntryList {
     pub state: ListState,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConfirmationKind {
+    DeleteFeed,
+    DownloadTtsModel,
+}
+
 #[derive(Debug)]
 pub struct ConfirmationPopup {
     pub message: String,
     pub choice: ConfirmationChoice,
+    pub kind: ConfirmationKind,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ConfirmationChoice {
     Cancel,
-    Delete,
+    Accept,
 }
 
 impl ConfirmationChoice {
     pub fn toggle(&mut self) {
         *self = match self {
-            Self::Cancel => Self::Delete,
-            Self::Delete => Self::Cancel,
+            Self::Cancel => Self::Accept,
+            Self::Accept => Self::Cancel,
         };
     }
 }
@@ -68,6 +76,8 @@ pub struct App {
     pub max_scroll: u16,
     pub confirmation_popup: Option<ConfirmationPopup>,
     pub notice: Option<Notice>,
+    pub tts: Option<TTS>,
+    pub tts_downloading: bool,
 }
 
 impl App {
@@ -96,6 +106,8 @@ impl App {
             max_scroll: 0,
             confirmation_popup: None,
             notice: None,
+            tts: None,
+            tts_downloading: false,
         })
     }
 

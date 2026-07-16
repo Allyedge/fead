@@ -1,12 +1,17 @@
 use crate::{
-    app::{App, AppResult, ConfirmationChoice, ConfirmationPopup, InputMode},
+    app::{
+        App, AppResult, ConfirmationChoice, ConfirmationKind, ConfirmationPopup, InputMode,
+    },
     entries::FeedDocument,
     feeds::FeedsManager,
     fetch::{fetch_content, FetchError},
     reader::parse_feed,
     screen::Screen,
+    tts::TTS,
+    tts_model::{download_model, model_dir, model_ready, TtsModelEvent},
 };
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use tokio::sync::mpsc;
 use tui_input::backend::crossterm::EventHandler;
 
 #[derive(Clone, Copy)]
@@ -21,7 +26,11 @@ enum Edge {
     Last,
 }
 
-pub async fn handle_key_events(key: KeyEvent, app: &mut App) -> AppResult<()> {
+pub async fn handle_key_events(
+    key: KeyEvent,
+    app: &mut App,
+    model_tx: &mpsc::UnboundedSender<TtsModelEvent>,
+) -> AppResult<()> {
     if key.modifiers.contains(KeyModifiers::CONTROL) && matches!(key.code, KeyCode::Char('c' | 'C'))
     {
         app.quit();
@@ -29,7 +38,7 @@ pub async fn handle_key_events(key: KeyEvent, app: &mut App) -> AppResult<()> {
     }
 
     if app.confirmation_popup.is_some() {
-        handle_confirmation(key, app)?;
+        handle_confirmation(key, app, model_tx)?;
         return Ok(());
     }
 
@@ -41,7 +50,33 @@ pub async fn handle_key_events(key: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn handle_confirmation(key: KeyEvent, app: &mut App) -> AppResult<()> {
+pub fn handle_tts_model_event(app: &mut App, event: TtsModelEvent) {
+    match event {
+        TtsModelEvent::Progress { percent } => {
+            app.tts_downloading = true;
+            app.show_info(format!("Downloading Kokoro EN model… {percent}%"));
+        }
+        TtsModelEvent::Finished(result) => {
+            app.tts_downloading = false;
+            match result {
+                Ok(()) => match TTS::load() {
+                    Ok(tts) => {
+                        app.tts = Some(tts);
+                        app.show_info("TTS model ready.");
+                    }
+                    Err(error) => app.show_error(error),
+                },
+                Err(error) => app.show_error(format!("TTS download failed: {error}")),
+            }
+        }
+    }
+}
+
+fn handle_confirmation(
+    key: KeyEvent,
+    app: &mut App,
+    model_tx: &mpsc::UnboundedSender<TtsModelEvent>,
+) -> AppResult<()> {
     match key.code {
         KeyCode::Esc => app.confirmation_popup = None,
         KeyCode::Left | KeyCode::Right | KeyCode::Tab | KeyCode::BackTab => {
@@ -50,18 +85,43 @@ fn handle_confirmation(key: KeyEvent, app: &mut App) -> AppResult<()> {
             }
         }
         KeyCode::Enter => {
-            let should_delete = app
-                .confirmation_popup
-                .as_ref()
-                .is_some_and(|popup| popup.choice == ConfirmationChoice::Delete);
-            app.confirmation_popup = None;
-
-            if should_delete {
-                delete_selected_feed(app)?;
+            let Some(popup) = app.confirmation_popup.take() else {
+                return Ok(());
+            };
+            if popup.choice != ConfirmationChoice::Accept {
+                return Ok(());
+            }
+            match popup.kind {
+                ConfirmationKind::DeleteFeed => delete_selected_feed(app)?,
+                ConfirmationKind::DownloadTtsModel => start_tts_download(app, model_tx)?,
             }
         }
         _ => {}
     }
+    Ok(())
+}
+
+fn start_tts_download(
+    app: &mut App,
+    model_tx: &mpsc::UnboundedSender<TtsModelEvent>,
+) -> AppResult<()> {
+    if app.tts_downloading {
+        app.show_info("TTS model download already in progress.");
+        return Ok(());
+    }
+
+    app.tts_downloading = true;
+    app.show_info("Downloading Kokoro EN model… 0%");
+
+    let tx = model_tx.clone();
+    tokio::spawn(async move {
+        let result = download_model(|percent| {
+            let _ = tx.send(TtsModelEvent::Progress { percent });
+        })
+        .await;
+        let _ = tx.send(TtsModelEvent::Finished(result));
+    });
+
     Ok(())
 }
 
@@ -78,9 +138,11 @@ async fn handle_normal_mode(key: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.confirmation_popup = Some(ConfirmationPopup {
                     message: format!("Delete “{title}”?"),
                     choice: ConfirmationChoice::Cancel,
+                    kind: ConfirmationKind::DeleteFeed,
                 });
             }
         }
+        KeyCode::Char('t' | 'T') => request_tts(app)?,
         KeyCode::Esc | KeyCode::Left => go_back(app),
         KeyCode::Down | KeyCode::Char('j') => move_selection(app, Direction::Forward),
         KeyCode::Up | KeyCode::Char('k') => move_selection(app, Direction::Backward),
@@ -95,6 +157,39 @@ async fn handle_normal_mode(key: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Enter | KeyCode::Right => open_selection(app).await?,
         _ => {}
     }
+    Ok(())
+}
+
+fn request_tts(app: &mut App) -> AppResult<()> {
+    if app.tts_downloading {
+        app.show_info("Download already in progress.");
+        return Ok(());
+    }
+
+    if app.tts.is_some() {
+        app.show_info("TTS is ready.");
+        return Ok(());
+    }
+
+    if model_ready() {
+        match TTS::load() {
+            Ok(tts) => {
+                app.tts = Some(tts);
+                app.show_info("TTS model loaded.");
+            }
+            Err(error) => app.show_error(error),
+        }
+        return Ok(());
+    }
+
+    app.confirmation_popup = Some(ConfirmationPopup {
+        message: format!(
+            "Download Kokoro EN (~330MB) to {}?",
+            model_dir().display()
+        ),
+        choice: ConfirmationChoice::Cancel,
+        kind: ConfirmationKind::DownloadTtsModel,
+    });
     Ok(())
 }
 
